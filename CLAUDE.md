@@ -46,7 +46,7 @@ Mongo. CDC streams Mongo changes to Kafka for cache invalidation + read models.
 - Commit at each green acceptance check.
 
 ## Build order (tick as you go)
-- [ ] 1. Contracts + docker-compose + EventBus interface
+- [x] 1. Contracts + docker-compose + EventBus interface
 - [ ] 2. API + ingestion
 - [ ] 3. Trigger + startRun (dedup)
 - [ ] 4. Engine (DAG + join barrier)
