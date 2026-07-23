@@ -7,6 +7,7 @@ from app.errors import (
     DAGValidationError,
     NotFoundError,
     PayloadTooLargeError,
+    UnresolvedWorkflowError,
     UnsupportedContentTypeError,
 )
 
@@ -37,6 +38,12 @@ def register_error_handlers(app: FastAPI) -> None:
         request: Request, exc: UnsupportedContentTypeError
     ) -> JSONResponse:
         return _error_response(415, "unsupported_content_type", str(exc))
+
+    @app.exception_handler(UnresolvedWorkflowError)
+    async def handle_unresolved_workflow(
+        request: Request, exc: UnresolvedWorkflowError
+    ) -> JSONResponse:
+        return _error_response(422, "unresolved_workflow", str(exc))
 
     @app.exception_handler(Exception)
     async def handle_unexpected(request: Request, exc: Exception) -> JSONResponse:

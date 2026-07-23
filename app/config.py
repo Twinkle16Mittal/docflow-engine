@@ -29,3 +29,9 @@ class Settings(BaseSettings):
         "image/jpeg",
         "text/plain",
     ]
+
+    # Static trigger policy: DocumentSource value -> workflow_id. Step 7 replaces
+    # this with match-rules stored on the workflow definition itself (e.g. keying
+    # off finer-grained things like a specific S3 bucket, not just the channel).
+    source_workflow_map: dict[str, str] = {}
+    default_workflow_id: str | None = None

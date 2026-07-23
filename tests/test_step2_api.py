@@ -1,55 +1,33 @@
 import io
-import os
 
-import pytest
 from fastapi.testclient import TestClient
-from pymongo import MongoClient
-
-os.environ.setdefault("RUN_MODE", "inline")
-os.environ.setdefault(
-    "MONGODB_URI", "mongodb://localhost:27017/docflow_test?replicaSet=rs0"
-)
-
-from app.main import app  # noqa: E402
 
 PDF_BYTES = b"%PDF-1.4 fake pdf content for testing\n%%EOF"
 
 
-@pytest.fixture
-def client():
-    with TestClient(app) as c:
-        yield c
+def _create_workflow(client: TestClient, workflow_id: str = "wf-step2"):
+    payload = {"id": workflow_id, "nodes": [{"id": "a", "type": "extract", "depends_on": []}]}
+    response = client.post("/workflows", json=payload)
+    assert response.status_code == 201
+    return workflow_id
 
 
-@pytest.fixture(autouse=True)
-def clean_collections():
-    # Uses the sync driver, not app.db's AsyncMongoClient, so cleanup never
-    # binds to a different event loop than the one TestClient's requests run on.
-    sync_client: MongoClient = MongoClient(
-        "mongodb://localhost:27017/docflow_test?replicaSet=rs0"
-    )
-    db = sync_client.get_default_database()
-    db["documents"].delete_many({})
-    db["workflows"].delete_many({})
-    yield
-    db["documents"].delete_many({})
-    db["workflows"].delete_many({})
-    sync_client.close()
-
-
-def _upload(client: TestClient, filename: str = "sample.pdf"):
+def _upload(client: TestClient, filename: str = "sample.pdf", workflow_id: str | None = None):
     return client.post(
         "/documents",
+        params={"workflow_id": workflow_id} if workflow_id else {},
         files={"file": (filename, io.BytesIO(PDF_BYTES), "application/pdf")},
     )
 
 
 def test_upload_happy_path(client: TestClient):
-    response = _upload(client)
+    workflow_id = _create_workflow(client)
+    response = _upload(client, workflow_id=workflow_id)
     assert response.status_code == 201
     body = response.json()
     assert body["duplicate"] is False
     assert body["status"] == "received"
+    assert body["run_id"]
 
     get_response = client.get(f"/documents/{body['document_id']}")
     assert get_response.status_code == 200
@@ -60,10 +38,11 @@ def test_upload_happy_path(client: TestClient):
 
 
 def test_duplicate_upload_reports_duplicate_and_single_record(client: TestClient):
-    first = _upload(client)
+    workflow_id = _create_workflow(client)
+    first = _upload(client, workflow_id=workflow_id)
     assert first.status_code == 201
 
-    second = _upload(client)
+    second = _upload(client, workflow_id=workflow_id)
     assert second.status_code == 200
     assert second.json()["duplicate"] is True
 

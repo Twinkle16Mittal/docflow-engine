@@ -26,6 +26,7 @@ class DocumentCreateResponse(BaseModel):
     document_id: str
     status: str
     duplicate: bool
+    run_id: str | None = None
 
 
 class DocumentResponse(BaseModel):
@@ -46,10 +47,27 @@ class DocumentListResponse(BaseModel):
     offset: int
 
 
+class NodeStateOut(BaseModel):
+    status: str
+    output: Any | None = None
+    attempts: int = 0
+    completed_deps: list[str] = []
+
+
 class RunResponse(BaseModel):
     id: str
     workflow_id: str
     workflow_version: int
     document_id: str
     status: str
-    node_states: dict[str, Any] = {}
+    node_states: dict[str, NodeStateOut] = {}
+
+
+class ManualRunRequest(BaseModel):
+    document_id: str
+    workflow_id: str | None = None
+
+
+class ManualRunResponse(BaseModel):
+    run_id: str
+    created: bool

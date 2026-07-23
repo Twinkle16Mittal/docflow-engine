@@ -17,3 +17,8 @@ class PayloadTooLargeError(Exception):
 
 class UnsupportedContentTypeError(Exception):
     pass
+
+
+class UnresolvedWorkflowError(Exception):
+    """No workflow could be determined for a document: no explicit workflow_id,
+    no matching source->workflow policy, and no default configured."""

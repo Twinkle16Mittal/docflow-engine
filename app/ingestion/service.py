@@ -5,16 +5,21 @@ from typing import Any
 from pymongo.errors import DuplicateKeyError
 
 from app.db import get_documents
-from app.models import DocumentEnvelope, DocumentStatus
+from app.models import DocumentEnvelope, DocumentStatus, WorkflowRun
+from app.trigger.handler import TriggerHandler
 
 
 @dataclass
 class IngestionResult:
     document: dict[str, Any]
     is_duplicate: bool
+    run: WorkflowRun | None = None
 
 
 class IngestionService:
+    def __init__(self, trigger_handler: TriggerHandler | None = None) -> None:
+        self._trigger_handler = trigger_handler
+
     async def ingest(
         self, envelope: DocumentEnvelope, workflow_id: str | None = None
     ) -> IngestionResult:
@@ -30,9 +35,11 @@ class IngestionService:
         except DuplicateKeyError:
             existing = await get_documents().find_one({"dedup_key": envelope.dedup_key})
             assert existing is not None
+            # A duplicate document must never trigger a new run.
             return IngestionResult(document=existing, is_duplicate=True)
 
-        # TODO(step-3): fire the trigger/startRun hook here (publish RUN_STARTED)
-        # once the engine exists. Ingestion's responsibility stops at persisting
-        # the normalized document.
-        return IngestionResult(document=doc, is_duplicate=False)
+        run = None
+        if self._trigger_handler is not None:
+            run, _ = await self._trigger_handler.handle(envelope, workflow_id=workflow_id)
+
+        return IngestionResult(document=doc, is_duplicate=False, run=run)
