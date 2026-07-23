@@ -49,3 +49,6 @@ async def ensure_indexes() -> None:
     await get_workflow_runs().create_index(
         [("workflow_id", ASCENDING), ("status", ASCENDING)]
     )
+    await get_workflows().create_index(
+        [("id", ASCENDING), ("version", ASCENDING)], unique=True
+    )

@@ -21,3 +21,11 @@ class Settings(BaseSettings):
     s3_access_key: str = "minioadmin"
     s3_secret_key: str = "minioadmin"
     s3_bucket: str = "docflow-raw"
+
+    max_upload_size_bytes: int = 25 * 1024 * 1024
+    allowed_content_types: list[str] = [
+        "application/pdf",
+        "image/png",
+        "image/jpeg",
+        "text/plain",
+    ]
